@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CLIENT
+  ADMIN
+}
+
+enum OrderStatus {
+  REQUIREMENTS_SUBMITTED
+  QUOTATION_READY
+  AWAITING_PRODUCTION
+  IN_PRODUCTION
+  AT_CHINA_WAREHOUSE
+  INTERNATIONAL_TRANSIT
+  OUT_FOR_LOCAL_DELIVERY
+  DELIVERED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(CLIENT)
+  orders    Order[]
+  rfqs      RFQ[]
+  createdAt DateTime @default(now())
+}
+
+model RFQ {
+  id             String     @id @default(uuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id])
+  productName    String
+  specifications String     @db.Text
+  quantity       Int
+  imageUrls      String[]
+  status         String     @default("PENDING_REVIEW")
+  quotation      Quotation?
+  createdAt      DateTime   @default(now())
+}
+
+model Factory {
+  id            String        @id @default(uuid())
+  name          String        @unique
+  contactPerson String?
+  email         String?
+  whatsapp      String?
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  quotations    Quotation[]
+  factoryNotes  FactoryNote[]
+}
+
+model FactoryNote {
+  id        String   @id @default(uuid())
+  factoryId String
+  factory   Factory  @relation(fields: [factoryId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model OrderStatusLog {
+  id         String       @id @default(uuid())
+  orderId    String
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  changedAt  DateTime     @default(now())
+}
+
+model Quotation {
+  id            String   @id @default(uuid())
+  rfqId         String   @unique
+  rfq           RFQ      @relation(fields: [rfqId], references: [id])
+  productCost   Decimal  @db.Decimal(10, 2)
+  shippingCost  Decimal  @db.Decimal(10, 2)
+  customsDuties Decimal  @db.Decimal(10, 2)
+  otherExpenses Decimal  @db.Decimal(10, 2)
+  totalCost     Decimal  @db.Decimal(10, 2)
+  isApproved    Boolean  @default(false)
+  paymentProof  String?
+  factoryId     String?
+  factory       Factory? @relation(fields: [factoryId], references: [id])
+  order         Order?
+  createdAt     DateTime @default(now())
+}
+
+model Order {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  quotationId String           @unique
+  quotation   Quotation        @relation(fields: [quotationId], references: [id])
+  status      OrderStatus      @default(AWAITING_PRODUCTION)
+  statusLogs  OrderStatusLog[]
+  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime         @default(now())
+}
