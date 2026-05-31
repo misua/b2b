@@ -8,9 +8,9 @@ NIXPACKS_NODE_VERSION = "20"
 cmds = ["rm -f package-lock.json && npm install --no-audit --no-fund"]
 
 [phases.build]
-# Explicitly remove any cached .next build before rebuilding
-# This ensures CSS/font changes are never served from a stale cache
-cmds = ["rm -rf .next && npm run build"]
+# Remove compiled output but preserve .next/cache (Railway mounts it as a volume)
+# This forces CSS/JS to recompile while keeping the build cache for speed
+cmds = ["rm -rf .next/server .next/static .next/standalone .next/BUILD_ID && npm run build"]
 
 [start]
 cmd = "npm run db:migrate:deploy && npm start"
