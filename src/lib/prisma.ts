@@ -26,6 +26,27 @@ function createPrismaClient(): PrismaClient {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+/**
+ * Lazily instantiate Prisma on first access via a Proxy.
+ *
+ * IMPORTANT: We must NOT call createPrismaClient() at module load time.
+ * During `next build`, Next.js evaluates route modules to collect page data,
+ * and DATABASE_URL may be unset in the build environment. Instantiating Prisma
+ * eagerly would throw and crash the build. The Proxy defers creation until the
+ * first actual database access (request time).
+ */
+function getPrisma(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
+  return globalForPrisma.prisma;
+}
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrisma();
+    const value = client[prop as keyof PrismaClient];
+    // Bind methods so `this` resolves correctly
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});

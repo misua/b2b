@@ -5,13 +5,24 @@ import { redirect } from "next/navigation";
 import type { SessionPayload } from "@/lib/definitions";
 
 const SESSION_COOKIE = "b2b_session";
-const secretKey = process.env.SESSION_SECRET;
 
-if (!secretKey) {
-  throw new Error("SESSION_SECRET environment variable is not set.");
+/**
+ * Lazily resolve and encode the session secret.
+ *
+ * IMPORTANT: This must NOT run at module load time. During `next build`,
+ * Next.js evaluates every route's modules to collect page data, and build
+ * environments may not have SESSION_SECRET set. Throwing at import time
+ * crashes the entire build. By deferring the check to actual function calls
+ * (request time), the build succeeds and we only fail if the secret is
+ * genuinely missing when a session operation is attempted.
+ */
+function getEncodedKey(): Uint8Array {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error("SESSION_SECRET environment variable is not set.");
+  }
+  return new TextEncoder().encode(secret);
 }
-
-const encodedKey = new TextEncoder().encode(secretKey);
 
 // ─── Encrypt / Decrypt ────────────────────────────────────────────────────────
 
@@ -20,7 +31,7 @@ export async function encrypt(payload: SessionPayload): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(encodedKey);
+    .sign(getEncodedKey());
 }
 
 export async function decrypt(
@@ -28,7 +39,7 @@ export async function decrypt(
 ): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, encodedKey, {
+    const { payload } = await jwtVerify(token, getEncodedKey(), {
       algorithms: ["HS256"],
     });
     return payload as unknown as SessionPayload;
