@@ -12,20 +12,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 
 interface NavHeaderProps {
   userName: string;
   userEmail: string;
   role: "CLIENT" | "ADMIN";
-  /** Number of pending (unquoted) RFQs — admin only */
   pendingRfqCount?: number;
 }
 
 interface NavLink {
   href: string;
   label: string;
-  badge?: number; // optional notification count
+  badge?: number;
 }
 
 const CLIENT_LINKS: NavLink[] = [
@@ -63,26 +61,31 @@ export function NavHeader({
     role === "ADMIN" ? getAdminLinks(pendingRfqCount) : CLIENT_LINKS;
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-14 items-center gap-4">
-        {/* Logo */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-            B2B
-          </div>
-          <span className="font-semibold text-sm hidden sm:block">
-            Sourcing Portal
-          </span>
-          <Badge
-            variant={role === "ADMIN" ? "default" : "secondary"}
-            className="text-xs hidden sm:flex"
-          >
-            {role}
-          </Badge>
-        </div>
+    <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-b border-border/60">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-16 items-center gap-6">
 
-        {/* Nav links */}
-        <nav className="flex items-center gap-1 flex-1">
+        {/* ── Logo mark ── */}
+        <Link href={role === "ADMIN" ? "/dashboard/admin" : "/dashboard/client"} className="flex items-center gap-2.5 shrink-0 group">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm transition-transform group-hover:scale-105">
+            <span className="font-heading font-bold text-xs text-primary-foreground tracking-tight">
+              B2B
+            </span>
+          </div>
+          <div className="hidden sm:block">
+            <span className="font-heading font-semibold text-sm text-foreground">
+              Sourcing
+            </span>
+            <span className="font-heading font-semibold text-sm text-primary ml-0.5">
+              Portal
+            </span>
+          </div>
+        </Link>
+
+        {/* ── Divider ── */}
+        <div className="hidden sm:block w-px h-5 bg-border/60 shrink-0" />
+
+        {/* ── Nav links ── */}
+        <nav className="flex items-center gap-0.5 flex-1">
           {links.map((link) => {
             const isActive =
               link.href === "/dashboard/admin" ||
@@ -94,17 +97,22 @@ export function NavHeader({
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                className={`relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                   isActive
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    ? "text-primary bg-primary/8"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 }`}
               >
                 {link.label}
 
-                {/* Notification badge — red dot with count */}
+                {/* Active underline indicator */}
+                {isActive && (
+                  <span className="absolute bottom-1 left-3 right-3 h-0.5 rounded-full bg-primary" />
+                )}
+
+                {/* Notification badge */}
                 {link.badge != null && link.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground leading-none">
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white leading-none shadow-sm">
                     {link.badge > 99 ? "99+" : link.badge}
                   </span>
                 )}
@@ -113,25 +121,34 @@ export function NavHeader({
           })}
         </nav>
 
-        {/* User menu */}
+        {/* ── Role chip ── */}
+        <span
+          className={`hidden sm:inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full tracking-widest uppercase shrink-0 ${
+            role === "ADMIN"
+              ? "bg-primary/15 text-primary border border-primary/25"
+              : "bg-muted text-muted-foreground border border-border"
+          }`}
+        >
+          {role}
+        </span>
+
+        {/* ── User menu ── */}
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="relative h-9 w-9 rounded-full shrink-0 cursor-pointer
-                       focus-visible:outline-none focus-visible:ring-2
-                       focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="relative h-9 w-9 rounded-full shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/30 transition-all focus-visible:outline-none focus-visible:ring-primary/50"
             aria-label="Open user menu"
           >
             <Avatar className="h-9 w-9 pointer-events-none">
-              <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+              <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
                 {getInitials(userName)}
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent className="w-56" align="end">
-            <div className="px-2 py-1.5 flex flex-col space-y-0.5">
-              <p className="text-sm font-medium leading-none truncate">{userName}</p>
-              <p className="text-xs leading-none text-muted-foreground truncate">
+            <div className="px-3 py-2 flex flex-col space-y-0.5">
+              <p className="text-sm font-semibold leading-none truncate">{userName}</p>
+              <p className="text-xs leading-none text-muted-foreground truncate mt-1">
                 {userEmail}
               </p>
             </div>
