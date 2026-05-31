@@ -2,7 +2,10 @@
 NIXPACKS_NODE_VERSION = "20"
 
 [phases.install]
-cmds = ["npm install --legacy-peer-deps"]
+# Remove the lock file and use a plain install so platform-specific
+# optional deps (e.g. @emnapi/*, @tailwindcss/oxide) resolve correctly
+# on Railway's build platform. Avoids `npm ci` lock-mismatch failures.
+cmds = ["rm -f package-lock.json && npm install --no-audit --no-fund"]
 
 [phases.build]
 cmds = ["npm run build"]
