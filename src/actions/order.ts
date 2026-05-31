@@ -43,7 +43,7 @@ export async function updateOrderStatus(
       user: { select: { name: true, email: true } },
       quotation: {
         include: {
-          rfq: { select: { productName: true, quantity: true } },
+          rfq: { select: { id: true, productName: true, quantity: true } },
         },
       },
     },
@@ -60,10 +60,21 @@ export async function updateOrderStatus(
   await prisma.orderStatusLog.create({
     data: {
       orderId,
-      fromStatus: order.status, // captured before the update above
+      fromStatus: order.status,
       toStatus: status,
     },
   });
+
+  // ── Sync RFQ status when order is DELIVERED ──
+  // The RFQ.status field drives what clients see on their dashboard.
+  // When an order reaches DELIVERED, mark the RFQ as COMPLETED so the
+  // client's activity list shows "Completed" instead of "In Progress".
+  if (status === "DELIVERED") {
+    await prisma.rFQ.update({
+      where: { id: order.quotation.rfq.id },
+      data: { status: "COMPLETED" },
+    });
+  }
 
   // ── Email: notify client of status change ──
   const appUrl = getAppUrl();

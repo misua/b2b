@@ -28,7 +28,7 @@ export default async function ClientDashboardPage() {
             select: {
               id: true,
               isApproved: true,
-              order: { select: { id: true } },
+              order: { select: { id: true, status: true } },
             },
           },
         },
