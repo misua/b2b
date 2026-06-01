@@ -7,24 +7,22 @@ async function getJsPDF() {
   return jsPDF;
 }
 
-// ─── Company details ──────────────────────────────────────────────────────────
-const COMPANY_NAME    = process.env.COMPANY_NAME    ?? "B2B SOURCING PORTAL";
-const COMPANY_ADDRESS = process.env.COMPANY_ADDRESS ?? "Davao City, Philippines";
-const COMPANY_TIN     = process.env.COMPANY_TIN     ?? "";
+// ─── Company details (hardcoded from LAJ Konnect) ────────────────────────────
+const CO_NAME    = "LAJ GLOBAL KONECT TRADING CORPORATION";
+const CO_ADDR1   = "Blk 20 Lot 1, Pumice St., Wellspring Village 1";
+const CO_ADDR2   = "Catalunan Pequeño, Davao City";
+const CO_TIN     = "TIN: 010-952-151-000";
 
-// ─── Colours (matching the LAJ format: navy blue accents) ────────────────────
-const NAVY  = [26,  57,  96]  as const;  // #1A3960
-const WHITE = [255, 255, 255] as const;
-const LIGHT = [240, 244, 250] as const;  // table header bg
-const GREY  = [120, 120, 120] as const;
-const BLACK = [30,  30,  30]  as const;
+// ─── Colours ──────────────────────────────────────────────────────────────────
+const NAVY  : [number,number,number] = [26,  57,  96];
+const WHITE : [number,number,number] = [255, 255, 255];
+const LIGHT : [number,number,number] = [240, 245, 252];
+const LGREY : [number,number,number] = [248, 249, 251];
+const GREY  : [number,number,number] = [110, 110, 110];
+const BLACK : [number,number,number] = [25,  25,  25];
 
-// ─── Number formatter (PHP, no ₱ symbol — jsPDF Helvetica can't render it) ──
-function n(val: number): string {
-  return val.toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+function nf(v: number) {
+  return v.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export async function GET(
@@ -45,9 +43,7 @@ export async function GET(
         : { id: quotationId },
     include: {
       rfq: {
-        include: {
-          user: { select: { name: true } },
-        },
+        include: { user: { select: { name: true } } },
       },
       factory: { select: { name: true } },
     },
@@ -71,297 +67,279 @@ export async function GET(
     day: "numeric", month: "long", year: "numeric",
   });
 
-  // ── Build PDF ──────────────────────────────────────────────────────────────
   const JsPDF = await getJsPDF();
   const doc   = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  const PW = doc.internal.pageSize.getWidth();   // 210
-  const PH = doc.internal.pageSize.getHeight();  // 297
-  const ML = 15;  // margin left
-  const MR = PW - ML; // margin right = 195
+  const PW = 210;
+  const PH = 297;
+  const ML = 14;   // left margin
+  const MR = 196;  // right margin
+  const CW = MR - ML; // content width = 182
 
-  // ── Helper shortcuts ───────────────────────────────────────────────────────
-  const setColor = (r: number, g: number, b: number) => doc.setTextColor(r, g, b);
-  const setFill  = (r: number, g: number, b: number) => doc.setFillColor(r, g, b);
-  const setDraw  = (r: number, g: number, b: number) => doc.setDrawColor(r, g, b);
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function tc(r: number, g: number, b: number) { doc.setTextColor(r, g, b); }
+  function fc(r: number, g: number, b: number) { doc.setFillColor(r, g, b); }
+  function dc(r: number, g: number, b: number) { doc.setDrawColor(r, g, b); }
+  function txt(s: string, x: number, y: number, opts?: { align?: "left"|"right"|"center", maxWidth?: number }) {
+    doc.text(s, x, y, opts as Parameters<typeof doc.text>[3]);
+  }
+  function rect(x: number, y: number, w: number, h: number, style: "F"|"S"|"FD") {
+    doc.rect(x, y, w, h, style);
+  }
+  function line(x1: number, y1: number, x2: number, y2: number) {
+    doc.line(x1, y1, x2, y2);
+  }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════
   // PAGE 1
-  // ═══════════════════════════════════════════════════════════════════════════
-  let y = 18;
+  // ══════════════════════════════════════════════════════════════════════════
+  let y = 16;
 
-  // ── Company name (bold, navy, large) ──────────────────────────────────────
+  // ── Company name (left, bold, navy) ───────────────────────────────────────
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  setColor(...NAVY);
-  doc.text(COMPANY_NAME, ML, y);
+  doc.setFontSize(13);
+  tc(...NAVY);
+  txt(CO_NAME, ML, y);
 
-  // ── "QUOTATION" title — right side, very large ────────────────────────────
+  // ── "QUOTATION" (right, bold, navy, large) ────────────────────────────────
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(28);
-  setColor(...NAVY);
-  doc.text("QUOTATION", MR, y, { align: "right" });
+  doc.setFontSize(26);
+  tc(...NAVY);
+  txt("QUOTATION", MR, y, { align: "right" });
 
-  // ── Address lines ─────────────────────────────────────────────────────────
+  // ── Address block ─────────────────────────────────────────────────────────
   y += 5;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  setColor(...GREY);
-  const addressLines = COMPANY_ADDRESS.split("\n");
-  for (const line of addressLines) {
-    doc.text(line, ML, y);
-    y += 4;
-  }
-  if (COMPANY_TIN) {
-    doc.text(`TIN: ${COMPANY_TIN}`, ML, y);
-    y += 4;
-  }
-
-  y += 5;
-
-  // ── Info grid table ────────────────────────────────────────────────────────
-  // 4 rows: Date / Quotation No., Client / Product, Address
-  const col1 = ML;
-  const col2 = ML + 30;
-  const col3 = ML + 95;
-  const col4 = ML + 120;
-  const rowH = 12;
-  const tableW = MR - ML;
-
-  type GridRow = [string, string, string, string];
-  const gridRows: GridRow[] = [
-    ["Date:",          dateStr,     "Quotation No.:", refNo],
-    ["Client:",        clientName,  "Product:",       productName],
-    ["Address:",       "",          "",               ""],
-  ];
-
-  setDraw(...NAVY);
-  doc.setLineWidth(0.3);
-
-  for (let i = 0; i < gridRows.length; i++) {
-    const [l1, v1, l2, v2] = gridRows[i];
-    const rowY = y + i * rowH;
-
-    // Row background — alternating very light
-    if (i % 2 === 0) {
-      setFill(248, 250, 253);
-      doc.rect(col1, rowY - rowH + 2, tableW, rowH, "F");
-    }
-
-    // Border rect
-    doc.rect(col1, rowY - rowH + 2, tableW, rowH, "S");
-
-    // Labels (bold)
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setColor(...NAVY);
-    doc.text(l1, col1 + 3, rowY - 2);
-    doc.text(l2, col3 + 3, rowY - 2);
-
-    // Values (normal)
-    doc.setFont("helvetica", "normal");
-    setColor(...BLACK);
-    // Wrap product name if long
-    const v1Lines = doc.splitTextToSize(v1, col3 - col2 - 4) as string[];
-    doc.text(v1Lines, col2, rowY - 2);
-    if (v2) {
-      const v2Lines = doc.splitTextToSize(v2, MR - col4 - 2) as string[];
-      doc.text(v2Lines, col4, rowY - 2);
-    }
-  }
-
-  y += gridRows.length * rowH + 8;
-
-  // ── Section heading: QUOTATION DETAILS ────────────────────────────────────
-  // Left navy accent bar
-  setFill(...NAVY);
-  doc.rect(ML, y - 4, 3, 8, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  setColor(...NAVY);
-  doc.text("QUOTATION DETAILS", ML + 6, y + 1);
+  doc.setFontSize(8);
+  tc(...GREY);
+  txt(CO_ADDR1, ML, y);
+  y += 4;
+  txt(CO_ADDR2, ML, y);
+  y += 4;
+  txt(CO_TIN, ML, y);
   y += 8;
 
-  // ── Line items table header ────────────────────────────────────────────────
-  const tML  = ML;
-  const tMR  = MR;
-  const tW   = tMR - tML;
-  const hH   = 10; // header height
-  const rH   = 9;  // row height
+  // ── Info grid ─────────────────────────────────────────────────────────────
+  // 3 rows, 4 columns: [Label | Value | Label | Value]
+  // Col positions
+  const G = {
+    x1: ML,         // col1 label start
+    x2: ML + 26,    // col1 value start
+    x3: ML + 95,    // col2 label start
+    x4: ML + 115,   // col2 value start
+    rH: 10,         // row height
+    w:  CW,
+  };
 
-  // Column widths (matching the sample: desc wide, qty/unit narrow, price/amount)
-  const cDesc  = tML;
-  const wDesc  = 78;
-  const cQty   = cDesc + wDesc;
-  const wQty   = 16;
-  const cUnit  = cQty + wQty;
-  const wUnit  = 22;
-  const cPrice = cUnit + wUnit;
-  const wPrice = 37;
-  const cAmt   = cPrice + wPrice;
-  const wAmt   = tMR - cAmt;
+  dc(...NAVY);
+  doc.setLineWidth(0.3);
 
-  // Header row — navy background
-  setFill(...NAVY);
-  doc.rect(tML, y, tW, hH, "F");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  setColor(...WHITE);
-  doc.text("DESCRIPTION",      cDesc  + 3, y + 6.5);
-  doc.text("QTY",              cQty   + 2, y + 6.5);
-  doc.text("UNIT",             cUnit  + 2, y + 6.5);
-  doc.text("UNIT PRICE\n(PHP)", cPrice + 2, y + 4);
-  doc.text("AMOUNT\n(PHP)",    cAmt   + 2, y + 4);
-  y += hH;
-
-  // ── Line item rows ─────────────────────────────────────────────────────────
-  const lineItems = [
-    { desc: "Product Cost",       qty: qty, unit: "units", unitPrice: productCost,   amount: productCost },
-    { desc: "Shipping & Freight", qty: 1,   unit: "lot",   unitPrice: shippingCost,  amount: shippingCost },
-    { desc: "Customs & Duties",   qty: 1,   unit: "lot",   unitPrice: customsDuties, amount: customsDuties },
-    { desc: "Other Expenses",     qty: 1,   unit: "lot",   unitPrice: otherExpenses,  amount: otherExpenses },
+  type Row4 = [string, string, string, string];
+  const gridData: Row4[] = [
+    ["Date:",    dateStr,    "Quotation No.:", refNo],
+    ["Client:",  clientName, "Product:",       productName],
+    ["Address:", "",         "",               ""],
   ];
 
-  setDraw(...NAVY);
+  gridData.forEach((row, i) => {
+    const ry = y + i * G.rH;
+    // Background
+    fc(...(i % 2 === 0 ? LIGHT : LGREY));
+    rect(ML, ry, G.w, G.rH, "FD");
+
+    // Labels
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    tc(...NAVY);
+    txt(row[0], G.x1 + 2, ry + 6.5);
+    txt(row[2], G.x3 + 2, ry + 6.5);
+
+    // Values
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    tc(...BLACK);
+    if (row[1]) {
+      const lines = doc.splitTextToSize(row[1], G.x3 - G.x2 - 4) as string[];
+      txt(lines[0], G.x2, ry + 6.5);
+    }
+    if (row[3]) {
+      const lines = doc.splitTextToSize(row[3], MR - G.x4 - 2) as string[];
+      txt(lines[0], G.x4, ry + 6.5);
+    }
+  });
+
+  y += gridData.length * G.rH + 8;
+
+  // ── Section: QUOTATION DETAILS ────────────────────────────────────────────
+  fc(...NAVY);
+  rect(ML, y - 3, 3, 8, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  tc(...NAVY);
+  txt("QUOTATION DETAILS", ML + 6, y + 2);
+  y += 9;
+
+  // ── Table columns ─────────────────────────────────────────────────────────
+  // Desc | Qty | Unit | Unit Price (PHP) | Amount (PHP)
+  const T = {
+    x:    ML,
+    hH:   9,   // header height
+    rH:   8.5, // row height
+    // column x-starts
+    c1: ML,          // Description
+    c2: ML + 79,     // Qty
+    c3: ML + 92,     // Unit
+    c4: ML + 114,    // Unit Price
+    c5: ML + 149,    // Amount
+    // widths
+    w1: 79, w2: 13, w3: 22, w4: 35, w5: MR - (ML + 149),
+    W:  CW,
+  };
+
+  // Header row
+  fc(...NAVY);
+  rect(T.x, y, T.W, T.hH, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  tc(...WHITE);
+  txt("DESCRIPTION",       T.c1 + 2,  y + 5.5);
+  txt("QTY",               T.c2 + 2,  y + 5.5);
+  txt("UNIT",              T.c3 + 2,  y + 5.5);
+  txt("UNIT PRICE (PHP)",  T.c4 + 2,  y + 3.5);
+  txt("AMOUNT (PHP)",      T.c5 + 2,  y + 3.5);
+  y += T.hH;
+
+  // Data rows
+  const items = [
+    { desc: `${productName} (Product Cost)`, qty: qty,  unit: "units", up: productCost,   amt: productCost   },
+    { desc: "Shipping & Freight",             qty: 1,    unit: "lot",   up: shippingCost,  amt: shippingCost  },
+    { desc: "Customs & Duties",               qty: 1,    unit: "lot",   up: customsDuties, amt: customsDuties },
+    { desc: "Other Expenses",                 qty: 1,    unit: "lot",   up: otherExpenses, amt: otherExpenses },
+  ];
+
+  dc(200, 212, 230);
   doc.setLineWidth(0.2);
 
-  for (let i = 0; i < lineItems.length; i++) {
-    const item = lineItems[i];
-    const ry = y + i * rH;
-
-    // Alternating row bg
-    if (i % 2 === 0) {
-      setFill(247, 250, 255);
-      doc.rect(tML, ry, tW, rH, "F");
-    } else {
-      setFill(...WHITE);
-      doc.rect(tML, ry, tW, rH, "F");
-    }
-
-    // Row border
-    doc.rect(tML, ry, tW, rH, "S");
+  items.forEach((item, i) => {
+    const ry = y + i * T.rH;
+    fc(...(i % 2 === 0 ? [247, 250, 255] as [number,number,number] : WHITE));
+    rect(T.x, ry, T.W, T.rH, "FD");
 
     // Vertical dividers
-    setDraw(200, 210, 225);
-    doc.line(cQty,   ry, cQty,   ry + rH);
-    doc.line(cUnit,  ry, cUnit,  ry + rH);
-    doc.line(cPrice, ry, cPrice, ry + rH);
-    doc.line(cAmt,   ry, cAmt,   ry + rH);
-    setDraw(...NAVY);
+    dc(200, 212, 230);
+    [T.c2, T.c3, T.c4, T.c5].forEach(cx => line(cx, ry, cx, ry + T.rH));
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
-    setColor(...BLACK);
-    doc.text(item.desc,          cDesc  + 3, ry + 6);
-    doc.text(String(item.qty),   cQty   + 2, ry + 6);
-    doc.text(item.unit,          cUnit  + 2, ry + 6);
-    doc.text(n(item.unitPrice),  cPrice + 2, ry + 6);
-    doc.text(n(item.amount),     cAmt   + 2, ry + 6);
-  }
+    tc(...BLACK);
+    // Truncate description if too wide
+    const descLines = doc.splitTextToSize(item.desc, T.w1 - 4) as string[];
+    txt(descLines[0], T.c1 + 2, ry + 5.5);
+    txt(String(item.qty), T.c2 + 2, ry + 5.5);
+    txt(item.unit,        T.c3 + 2, ry + 5.5);
+    txt(nf(item.up),      T.c4 + 2, ry + 5.5);
+    txt(nf(item.amt),     T.c5 + 2, ry + 5.5);
+  });
 
-  y += lineItems.length * rH;
+  y += items.length * T.rH;
 
   // ── Total row ──────────────────────────────────────────────────────────────
-  const totH = 12;
-  setFill(235, 241, 250);
-  doc.rect(tML, y, tW, totH, "F");
+  const totH = 11;
+  fc(235, 241, 250);
+  dc(...NAVY);
   doc.setLineWidth(0.4);
-  doc.rect(tML, y, tW, totH, "S");
+  rect(T.x, y, T.W, totH, "FD");
 
+  // "TOTAL AMOUNT:" label spanning first 3 cols
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  setColor(...NAVY);
-  doc.text("TOTAL AMOUNT:", cAmt - 35, y + 8, { align: "left" });
+  doc.setFontSize(9);
+  tc(...NAVY);
+  txt("TOTAL AMOUNT:", T.c5 - 38, y + 7.5, { align: "left" });
 
-  setFill(...NAVY);
-  doc.rect(cAmt, y, wAmt, totH, "F");
+  // Amount cell — navy fill
+  fc(...NAVY);
+  rect(T.c5, y, T.w5, totH, "F");
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  tc(...WHITE);
+  txt("PHP",      T.c5 + 2, y + 4.5);
   doc.setFontSize(10);
-  setColor(...WHITE);
-  doc.text(`PHP`, cAmt + 2, y + 5);
-  doc.setFontSize(11);
-  doc.text(n(totalCost), cAmt + 2, y + 11);
+  txt(nf(totalCost), T.c5 + 2, y + 10);
 
-  y += totH + 6;
+  y += totH + 4;
 
   // Per-unit note
   if (perUnit > 0) {
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(8);
-    setColor(...GREY);
-    doc.text(`Per unit: PHP ${n(perUnit)}`, MR, y, { align: "right" });
-    y += 6;
-  }
-
-  y += 4;
-
-  // ── WARRANTY & AFTER-SALES SUPPORT ────────────────────────────────────────
-  // Check if we have space — if not, add a new page
-  if (y > PH - 80) {
-    doc.addPage();
-    y = 20;
-  }
-
-  // Section heading
-  setFill(...NAVY);
-  doc.rect(ML, y - 4, 3, 8, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  setColor(...NAVY);
-  doc.text("WARRANTY & AFTER-SALES SUPPORT:", ML + 6, y + 1);
-  y += 8;
-
-  const warrantyPoints = [
-    "1-Year Warranty on major components against factory defects",
-    "Free Technical Support Assistance during operational setup and deployment",
-    "Priority Spare Parts Assistance for long-term operational reliability",
-    "Dedicated After-Sales Coordination for maintenance and technical inquiries",
-    "Factory Direct Import Advantage ensuring competitive pricing and premium-grade units",
-    "Pre-Delivery Quality Inspection performed prior to shipment release",
-    "Units Customization Available based on preferred specifications and project requirements",
-    "Continuous Client Support Commitment to ensure smooth project operations",
-  ];
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  setColor(...BLACK);
-  for (const pt of warrantyPoints) {
-    doc.text(`• ${pt}`, ML + 4, y);
-    y += 5.5;
+    doc.setFontSize(7.5);
+    tc(...GREY);
+    txt(`Per unit: PHP ${nf(perUnit)}`, MR, y, { align: "right" });
+    y += 5;
   }
 
   y += 6;
 
-  // ── Check if we need page 2 for terms ─────────────────────────────────────
-  if (y > PH - 70) {
-    doc.addPage();
-    y = 20;
-  }
+  // ── WARRANTY & AFTER-SALES SUPPORT ────────────────────────────────────────
+  if (y > PH - 90) { doc.addPage(); y = 18; }
 
-  // ── Thank you paragraph ────────────────────────────────────────────────────
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  setColor(...BLACK);
-  const thankYou =
-    "Thank you for the opportunity to submit our proposal. We look forward to building a strong and long-term " +
-    "partnership by providing reliable, premium-quality sourcing solutions with competitive pricing and " +
-    "dependable after-sales support.";
-  const tyLines = doc.splitTextToSize(thankYou, tW) as string[];
-  doc.text(tyLines, ML, y);
-  y += tyLines.length * 5 + 8;
-
-  // ── TERMS AND CONDITIONS ───────────────────────────────────────────────────
-  setFill(...NAVY);
-  doc.rect(ML, y - 4, 3, 8, "F");
+  fc(...NAVY);
+  rect(ML, y - 3, 3, 8, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  setColor(...NAVY);
-  doc.text("TERMS AND CONDITIONS", ML + 6, y + 1);
-  y += 8;
+  tc(...NAVY);
+  txt("WARRANTY & AFTER-SALES SUPPORT:", ML + 6, y + 2);
+  y += 10;
+
+  const warranty = [
+    "1-Year Warranty on major engine and mechanical components against factory defects",
+    "Free Technical Support Assistance during operational setup and deployment",
+    "Priority Spare Parts Assistance for long-term operational reliability",
+    "Dedicated After-Sales Coordination for maintenance concerns and technical inquiries",
+    "Factory Direct Import Advantage ensuring competitive pricing and premium-grade units",
+    "Pre-Delivery Quality Inspection performed prior to shipment release",
+    "Units Customization Available based on preferred specifications, color, and project requirements",
+    "Continuous Client Support Commitment to ensure smooth project operations and customer satisfaction",
+  ];
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  tc(...BLACK);
+  for (const pt of warranty) {
+    if (y > PH - 20) { doc.addPage(); y = 18; }
+    const lines = doc.splitTextToSize(`• ${pt}`, CW - 6) as string[];
+    doc.text(lines, ML + 4, y);
+    y += lines.length * 4.8 + 0.5;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PAGE 2 (or continue if space)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (y > PH - 80) { doc.addPage(); y = 18; } else { y += 8; }
+
+  // ── Thank you ─────────────────────────────────────────────────────────────
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  tc(...BLACK);
+  const ty = "Thank you for the opportunity to submit our proposal. We look forward to building a strong and long-term " +
+    "partnership by providing reliable, premium-quality sourcing solutions with competitive project pricing and " +
+    "dependable after-sales support.";
+  const tyL = doc.splitTextToSize(ty, CW) as string[];
+  doc.text(tyL, ML, y);
+  y += tyL.length * 5 + 8;
+
+  // ── TERMS AND CONDITIONS ───────────────────────────────────────────────────
+  if (y > PH - 60) { doc.addPage(); y = 18; }
+
+  fc(...NAVY);
+  rect(ML, y - 3, 3, 8, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  tc(...NAVY);
+  txt("TERMS AND CONDITIONS", ML + 6, y + 2);
+  y += 10;
 
   const terms = [
-    "Pricing is ALL-IN and inclusive of all applicable costs.",
+    "Pricing is ALL-IN and inclusive of shipping, delivery charges, and applicable costs.",
     "Quotation validity: Fifteen (15) days from the date of issuance.",
     "100% payment upon placement of order.",
     "VAT Inclusive.",
@@ -369,51 +347,51 @@ export async function GET(
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  setColor(...BLACK);
+  tc(...BLACK);
   for (const t of terms) {
-    doc.text(`• ${t}`, ML + 4, y);
-    y += 5.5;
+    const lines = doc.splitTextToSize(`• ${t}`, CW - 6) as string[];
+    doc.text(lines, ML + 4, y);
+    y += lines.length * 5 + 0.5;
   }
 
-  y += 14;
-
-  // ── Prepared By signature block ────────────────────────────────────────────
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  setColor(...GREY);
-  doc.text("Prepared By:", ML, y);
   y += 16;
 
-  // Signature line
-  setDraw(...BLACK);
+  // ── Prepared By ───────────────────────────────────────────────────────────
+  if (y > PH - 35) { doc.addPage(); y = 18; }
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  tc(...GREY);
+  txt("Prepared By:", ML, y);
+  y += 16;
+
+  dc(...BLACK);
   doc.setLineWidth(0.5);
-  doc.line(ML, y, ML + 70, y);
+  line(ML, y, ML + 72, y);
   y += 5;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  setColor(...NAVY);
-  doc.text(COMPANY_NAME, ML, y);
+  tc(...NAVY);
+  txt(CO_NAME, ML, y);
 
-  // ── Footer on every page ───────────────────────────────────────────────────
+  // ── Footer on all pages ───────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalPages = (doc.internal as any).getNumberOfPages() as number;
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    setColor(...GREY);
-    doc.text(
-      `${COMPANY_NAME}  |  Ref: ${refNo}  |  Page ${p} of ${totalPages}`,
-      PW / 2, PH - 8, { align: "center" }
-    );
-    // Bottom rule
-    setDraw(200, 210, 225);
+    dc(200, 210, 225);
     doc.setLineWidth(0.2);
-    doc.line(ML, PH - 11, MR, PH - 11);
+    line(ML, PH - 11, MR, PH - 11);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    tc(...GREY);
+    txt(
+      `${CO_NAME}  |  Ref: ${refNo}  |  Page ${p} of ${totalPages}`,
+      PW / 2, PH - 7, { align: "center" }
+    );
   }
 
-  // ── Return ─────────────────────────────────────────────────────────────────
   const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
 
   return new NextResponse(pdfBuffer, {
