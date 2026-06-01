@@ -12,7 +12,7 @@ interface PaymentReceivedAdminData {
 }
 
 function fmt(n: number): string {
-  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `&#x20B1;${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function paymentReceivedAdminEmail(data: PaymentReceivedAdminData): {

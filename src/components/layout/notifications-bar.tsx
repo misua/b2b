@@ -21,9 +21,18 @@ export async function NotificationsBar() {
     prisma.quotation.findMany({
       where: {
         isApproved: false,
-        rfq: { userId: session.userId, status: "QUOTED" },
+        // QUOTED = new quote ready | REVISED = admin responded to counter-offer
+        rfq: {
+          userId: session.userId,
+          status: { in: ["QUOTED"] },
+        },
+        negotiationStatus: { in: ["SENT", "REVISED"] },
       },
-      include: { rfq: { select: { productName: true } } },
+      select: {
+        id: true,
+        negotiationStatus: true,
+        rfq: { select: { productName: true } },
+      },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
@@ -47,9 +56,11 @@ export async function NotificationsBar() {
     ...pendingQuotations.map((q) => ({
       id: `quot-${q.id}`,
       type: "quotation_ready" as const,
-      label: `Quotation ready: ${q.rfq.productName}`,
+      label: q.negotiationStatus === "REVISED"
+        ? `Updated quote: ${q.rfq.productName}`
+        : `Quotation ready: ${q.rfq.productName}`,
       href: `/dashboard/client/quotations/${q.id}`,
-      icon: "💰",
+      icon: q.negotiationStatus === "REVISED" ? "🔄" : "💰",
       cta: "Review →",
     })),
     ...activeOrders.map((o) => ({

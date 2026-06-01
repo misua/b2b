@@ -85,9 +85,9 @@ function OrderCard({ order }: { order: Awaited<ReturnType<typeof getOrders>>[0] 
         <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
           <div>
             <span className="text-foreground font-medium">Total: </span>
-            ${Number(order.quotation.totalCost).toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-            })}
+            ₱{Number(order.quotation.totalCost).toLocaleString("en-PH", {
+                      minimumFractionDigits: 2,
+                    })}
           </div>
           <div>
             <span className="text-foreground font-medium">

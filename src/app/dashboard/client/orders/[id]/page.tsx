@@ -21,7 +21,7 @@ const STATUS_META: Record<string, { label: string; icon: string; bg: string; tex
 };
 
 function fmtMoney(n: number) {
-  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default async function OrderTrackerPage({
@@ -92,7 +92,7 @@ export default async function OrderTrackerPage({
         {[
           { label: "Order ID", value: order.id.slice(0, 8) + "…", mono: true },
           { label: "Quantity", value: order.quotation.rfq.quantity.toLocaleString() + " units" },
-          { label: "Total Value", value: "$" + fmtMoney(totalCost) },
+          { label: "Total Value", value: fmtMoney(totalCost) },
         ].map(({ label, value, mono }) => (
           <div key={label} className="rounded-xl border bg-card px-4 py-3 text-center">
             <p className="text-xs text-muted-foreground mb-1">{label}</p>
@@ -128,7 +128,7 @@ export default async function OrderTrackerPage({
               <div key={label}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-muted-foreground">{label}</span>
-                  <span className="font-medium tabular-nums">${fmtMoney(value)}</span>
+                  <span className="font-medium tabular-nums">{fmtMoney(value)}</span>
                 </div>
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
@@ -142,10 +142,22 @@ export default async function OrderTrackerPage({
           <Separator />
           <div className="flex justify-between text-sm font-bold pt-1">
             <span>Total</span>
-            <span className="tabular-nums text-base">${fmtMoney(totalCost)}</span>
+            <span className="tabular-nums text-base">{fmtMoney(totalCost)}</span>
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Download quotation PDF ── */}
+      <div className="flex justify-end">
+        <a
+          href={`/api/quotation/${order.quotation.id}/pdf`}
+          download
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card hover:bg-muted transition-colors text-sm font-medium text-foreground shadow-sm"
+        >
+          <span>📄</span>
+          <span>Download Quotation PDF</span>
+        </a>
+      </div>
     </div>
   );
 }

@@ -78,7 +78,7 @@ const STATUS_DOT_COLORS: Record<string, string> = {
 };
 
 function fmt(n: number) {
-  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function formatDate(d: Date) {
@@ -164,7 +164,7 @@ function EventCard({ event, isLast, deleteNoteAction }: EventCardProps) {
                   <span className="font-medium text-foreground/80">{event.productName}</span>
                   {" · "}{event.quantity.toLocaleString()} units{" · "}{event.clientName}
                 </p>
-                <p className="text-sm font-semibold text-blue-600 mt-1">${fmt(event.totalCost)}</p>
+                <p className="text-sm font-semibold text-blue-600 mt-1">{fmt(event.totalCost)}</p>
               </div>
               <TimeStamp d={event.timestamp} />
             </div>
@@ -190,9 +190,9 @@ function EventCard({ event, isLast, deleteNoteAction }: EventCardProps) {
                   <p className="text-xs text-emerald-700 mt-0.5">
                     {event.productName}{" · "}{event.clientName}
                   </p>
-                  <p className="text-base font-bold text-emerald-700 mt-1">
-                    ${fmt(event.totalCost)}
-                  </p>
+                   <p className="text-base font-bold text-emerald-700 mt-1">
+                     {fmt(event.totalCost)}
+                   </p>
                 </div>
                 <TimeStamp d={event.timestamp} />
               </div>

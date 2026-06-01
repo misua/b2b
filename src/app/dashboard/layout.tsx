@@ -10,9 +10,14 @@ export default async function DashboardLayout({
 }) {
   const session = await requireAuth();
 
+  // Count RFQs that need admin attention:
+  // - PENDING_REVIEW: new RFQs awaiting quotation
+  // - COUNTER_OFFERED: client has submitted a counter-offer awaiting response
   const pendingRfqCount =
     session.role === "ADMIN"
-      ? await prisma.rFQ.count({ where: { status: "PENDING_REVIEW" } })
+      ? await prisma.rFQ.count({
+          where: { status: { in: ["PENDING_REVIEW", "COUNTER_OFFERED"] } },
+        })
       : 0;
 
   return (

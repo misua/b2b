@@ -82,7 +82,7 @@ export default async function AdminOrderDetailPage({
               <div>
                 <p className="text-xs text-muted-foreground">Total Value</p>
                 <p className="font-semibold">
-                  ${Number(order.quotation.totalCost).toLocaleString("en-US", {
+                  ₱{Number(order.quotation.totalCost).toLocaleString("en-PH", {
                     minimumFractionDigits: 2,
                   })}
                 </p>

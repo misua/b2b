@@ -76,20 +76,50 @@ model OrderStatusLog {
 }
 
 model Quotation {
-  id            String   @id @default(uuid())
-  rfqId         String   @unique
-  rfq           RFQ      @relation(fields: [rfqId], references: [id])
-  productCost   Decimal  @db.Decimal(10, 2)
-  shippingCost  Decimal  @db.Decimal(10, 2)
-  customsDuties Decimal  @db.Decimal(10, 2)
-  otherExpenses Decimal  @db.Decimal(10, 2)
-  totalCost     Decimal  @db.Decimal(10, 2)
-  isApproved    Boolean  @default(false)
-  paymentProof  String?
-  factoryId     String?
-  factory       Factory? @relation(fields: [factoryId], references: [id])
-  order         Order?
-  createdAt     DateTime @default(now())
+  id                 String              @id @default(uuid())
+  rfqId              String              @unique
+  rfq                RFQ                 @relation(fields: [rfqId], references: [id])
+  productCost        Decimal             @db.Decimal(10, 2)
+  shippingCost       Decimal             @db.Decimal(10, 2)
+  customsDuties      Decimal             @db.Decimal(10, 2)
+  otherExpenses      Decimal             @db.Decimal(10, 2)
+  totalCost          Decimal             @db.Decimal(10, 2)
+  currency           String              @default("PHP")
+  isApproved         Boolean             @default(false)
+  paymentProof       String?
+  factoryId          String?
+  factory            Factory?            @relation(fields: [factoryId], references: [id])
+  negotiationStatus  String              @default("PENDING")
+  // PENDING | SENT | COUNTER_OFFERED | REVISED | APPROVED
+  order              Order?
+  revisions          QuotationRevision[]
+  messages           QuotationMessage[]
+  createdAt          DateTime            @default(now())
+}
+
+model QuotationRevision {
+  id            String    @id @default(uuid())
+  quotationId   String
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  version       Int
+  productCost   Decimal   @db.Decimal(10, 2)
+  shippingCost  Decimal   @db.Decimal(10, 2)
+  customsDuties Decimal   @db.Decimal(10, 2)
+  otherExpenses Decimal   @db.Decimal(10, 2)
+  totalCost     Decimal   @db.Decimal(10, 2)
+  adminNote     String?   @db.Text
+  createdAt     DateTime  @default(now())
+}
+
+model QuotationMessage {
+  id            String    @id @default(uuid())
+  quotationId   String
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  senderRole    Role
+  senderName    String
+  content       String    @db.Text
+  targetPrice   Decimal?  @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now())
 }
 
 model Order {

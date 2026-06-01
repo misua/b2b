@@ -18,17 +18,21 @@ export const metadata: Metadata = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  PENDING_REVIEW: "bg-amber-100 text-amber-800 border-amber-200",
-  QUOTED: "bg-blue-100 text-blue-800 border-blue-200",
-  IN_PROGRESS: "bg-purple-100 text-purple-800 border-purple-200",
-  REJECTED: "bg-red-100 text-red-800 border-red-200",
+  PENDING_REVIEW:   "bg-amber-100 text-amber-800 border-amber-200",
+  QUOTED:           "bg-blue-100 text-blue-800 border-blue-200",
+  COUNTER_OFFERED:  "bg-orange-100 text-orange-800 border-orange-200",
+  IN_PROGRESS:      "bg-purple-100 text-purple-800 border-purple-200",
+  COMPLETED:        "bg-green-100 text-green-800 border-green-200",
+  REJECTED:         "bg-red-100 text-red-800 border-red-200",
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  PENDING_REVIEW: "Pending Review",
-  QUOTED: "Quoted",
-  IN_PROGRESS: "In Progress",
-  REJECTED: "Rejected",
+  PENDING_REVIEW:   "Pending Review",
+  QUOTED:           "Quoted",
+  COUNTER_OFFERED:  "🔄 Counter-Offered",
+  IN_PROGRESS:      "In Progress",
+  COMPLETED:        "Completed",
+  REJECTED:         "Rejected",
 };
 
 export default async function AdminRFQsPage() {
@@ -43,7 +47,8 @@ export default async function AdminRFQsPage() {
   });
 
   const pendingCount = rfqs.filter((r) => r.status === "PENDING_REVIEW").length;
-  const quotedCount = rfqs.filter((r) => r.status === "QUOTED").length;
+  const counterCount = rfqs.filter((r) => r.status === "COUNTER_OFFERED").length;
+  const quotedCount  = rfqs.filter((r) => r.status === "QUOTED").length;
 
   return (
     <div className="space-y-6">
@@ -57,7 +62,9 @@ export default async function AdminRFQsPage() {
           </nav>
           <h1 className="text-2xl font-bold tracking-tight">Client RFQs</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {rfqs.length} total · {pendingCount} pending review · {quotedCount} quoted
+            {rfqs.length} total · {pendingCount} pending review
+            {counterCount > 0 && <span className="text-orange-600 font-medium"> · {counterCount} counter-offered</span>}
+            {" · "}{quotedCount} quoted
           </p>
         </div>
       </div>
@@ -116,7 +123,7 @@ export default async function AdminRFQsPage() {
                     {rfq.quotation && (
                       <div>
                         <span className="text-foreground font-medium">Total:</span>{" "}
-                        ${Number(rfq.quotation.totalCost).toLocaleString("en-US", {
+                        ₱{Number(rfq.quotation.totalCost).toLocaleString("en-PH", {
                           minimumFractionDigits: 2,
                         })}
                       </div>

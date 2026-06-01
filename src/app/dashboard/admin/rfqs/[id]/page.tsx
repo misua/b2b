@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CostingCalculator } from "@/components/admin/costing-calculator";
+import { QuotationThread } from "@/components/admin/quotation-thread";
 
 export const metadata: Metadata = {
   title: "Costing Calculator | Admin | B2B Sourcing Portal",
@@ -32,7 +33,13 @@ export default async function AdminRFQDetailPage({
       where: { id },
       include: {
         user: { select: { name: true, email: true } },
-        quotation: { include: { factory: true } },
+        quotation: {
+          include: {
+            factory: true,
+            revisions: { orderBy: { version: "asc" } },
+            messages:  { orderBy: { createdAt: "asc" } },
+          },
+        },
       },
     }),
     prisma.factory.findMany({ orderBy: { name: "asc" } }),
@@ -163,15 +170,45 @@ export default async function AdminRFQDetailPage({
           )}
         </div>
 
-        {/* ─── Right: Costing Calculator ───────────────────────────── */}
-        <div className="lg:col-span-2">
+        {/* ─── Right: Negotiation thread + Costing Calculator ─────── */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Negotiation thread — only shown when quotation exists */}
+          {rfq.quotation && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">💬 Negotiation Thread</CardTitle>
+                <CardDescription>
+                  {rfq.quotation.revisions.length > 0
+                    ? `Version ${rfq.quotation.revisions.length} · ${rfq.quotation.messages.length} message${rfq.quotation.messages.length !== 1 ? "s" : ""}`
+                    : "Track the back-and-forth with the client"}
+                </CardDescription>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-4">
+                <QuotationThread
+                  quotationId={rfq.quotation.id}
+                  messages={rfq.quotation.messages.map((m) => ({
+                    id:          m.id,
+                    senderRole:  m.senderRole,
+                    senderName:  m.senderName,
+                    content:     m.content,
+                    targetPrice: m.targetPrice ? Number(m.targetPrice) : null,
+                    createdAt:   m.createdAt,
+                  }))}
+                  hasCounterOffer={rfq.quotation.negotiationStatus === "COUNTER_OFFERED"}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Costing calculator */}
           <Card className="sticky top-20">
             <CardHeader>
               <CardTitle className="text-base">
-                {existingQuotation ? "Edit Quotation" : "Create Quotation"}
+                {existingQuotation ? "Revise Quotation" : "Create Quotation"}
               </CardTitle>
               <CardDescription>
-                Enter costs in USD. The total is sent to the client for approval.
+                Enter costs in Philippine Pesos (₱). The total is sent to the client for approval.
               </CardDescription>
             </CardHeader>
             <Separator />

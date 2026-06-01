@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 function fmtCurrency(n: number) {
-  return n.toLocaleString("en-US", {
+  return n.toLocaleString("en-PH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -173,10 +173,10 @@ export default async function FactoryDetailPage({
           { label: "Delivered", value: completedOrders.toString(), color: "text-green-600" },
           {
             label: "Confirmed Value",
-            value: `$${fmtCurrency(confirmedValue)}`,
+            value: `₱${fmtCurrency(confirmedValue)}`,
             color: "text-foreground",
             sub: totalQuotedValue !== confirmedValue
-              ? `$${fmtCurrency(totalQuotedValue)} quoted`
+              ? `₱${fmtCurrency(totalQuotedValue)} quoted`
               : undefined,
           },
         ].map(({ label, value, color, sub }) => (

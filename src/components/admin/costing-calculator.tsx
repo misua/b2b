@@ -166,7 +166,7 @@ export function CostingCalculator({
             <p className="text-xs text-muted-foreground">{description}</p>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                $
+                ₱
               </span>
               <Input
                 id={key}
@@ -197,8 +197,7 @@ export function CostingCalculator({
             <p className="text-xs text-muted-foreground mt-0.5">Sum of all line items</p>
           </div>
           <p className="text-3xl font-bold tabular-nums">
-            $
-            {total.toLocaleString("en-US", {
+            ₱{total.toLocaleString("en-PH", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
@@ -247,6 +246,21 @@ export function CostingCalculator({
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Admin note for client ── */}
+      <div className="space-y-1.5">
+        <Label htmlFor="adminNote" className="text-sm font-medium">
+          Note for client{" "}
+          <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <textarea
+          id="adminNote"
+          name="adminNote"
+          rows={2}
+          placeholder="e.g. Reduced shipping per your request. This is our best price."
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+        />
       </div>
 
       {/* ── Submit ── */}
