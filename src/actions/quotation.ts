@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireClient } from "@/lib/session";
@@ -132,7 +131,16 @@ export async function saveQuotation(
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/admin/rfqs");
   revalidatePath(`/dashboard/admin/rfqs/${rfqId}`);
-  redirect("/dashboard/admin");
+  // Revalidate client paths so their quotation page reflects the new state immediately
+  revalidatePath(`/dashboard/client/quotations/${quotation.id}`);
+  revalidatePath("/dashboard/client");
+
+  return {
+    success: true,
+    message: isRevision
+      ? `Revised quote sent to client. The Approve & Pay button is now unlocked for them.`
+      : `Quotation sent to ${rfq.user.name}. They will be notified to review and approve.`,
+  };
 }
 
 // ─── Get Quotation for Client ─────────────────────────────────────────────────

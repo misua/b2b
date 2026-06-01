@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { NavHeader } from "@/components/layout/nav-header";
 import { NotificationsBar } from "@/components/layout/notifications-bar";
+import { AutoRefresh } from "@/components/ui/auto-refresh";
 
 export default async function DashboardLayout({
   children,
@@ -28,6 +29,8 @@ export default async function DashboardLayout({
         role={session.role}
         pendingRfqCount={pendingRfqCount}
       />
+      {/* Keeps notification pills, badge counts, and order statuses fresh */}
+      <AutoRefresh intervalMs={15000} />
       <NotificationsBar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">{children}</main>
     </div>
