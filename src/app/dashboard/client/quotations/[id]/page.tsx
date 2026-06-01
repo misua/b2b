@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Separator } from "@/components/ui/separator";
 import { ButtonLink } from "@/components/ui/button-link";
 import { ApproveQuotationForm } from "@/components/rfq/approve-quotation-form";
-import { CounterOfferForm } from "@/components/client/counter-offer-form";
+import { CounterOfferPanel } from "@/components/client/counter-offer-panel";
 import { AutoRefresh } from "@/components/ui/auto-refresh";
 
 export const metadata: Metadata = { title: "Quotation | B2B Sourcing Portal" };
@@ -314,22 +314,15 @@ export default async function QuotationDetailPage({
               {/* ── Counter-offer section — not approved ── */}
               {!isApproved && (
                 <>
-                  <Separator />
-                  <details className="group">
-                    <summary className="text-xs text-center text-muted-foreground hover:text-primary cursor-pointer select-none list-none transition-colors">
-                      {isCounterOffered
-                        ? "Counter-offer submitted ✓"
-                        : "Not happy with the price? Counter-offer ›"}
-                    </summary>
-                    {!isCounterOffered && (
-                      <div className="mt-3">
-                        <CounterOfferForm
-                          quotationId={quotation.id}
-                          isLocked={isCounterOffered}
-                        />
-                      </div>
-                    )}
-                  </details>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground font-medium shrink-0">or</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  <CounterOfferPanel
+                    quotationId={quotation.id}
+                    isLocked={isCounterOffered}
+                  />
                 </>
               )}
             </div>
